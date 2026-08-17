@@ -15,6 +15,7 @@ export const getUsers = async (req, res) => {
   try {
     const users = await User.find({ _id: { $ne: req.user._id } }).select('name email avatar lastSeen');
     
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
     res.status(200).json({
       success: true,
       users,

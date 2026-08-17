@@ -26,10 +26,11 @@ const allowedOrigins = process.env.NODE_ENV === 'production' ? [] : [
 ];
 
 if (process.env.CLIENT_URL) {
-  allowedOrigins.push(process.env.CLIENT_URL);
+  // Remove trailing slash if present to match origin headers reliably
+  allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
 }
 if (process.env.ADMIN_URL) {
-  allowedOrigins.push(process.env.ADMIN_URL);
+  allowedOrigins.push(process.env.ADMIN_URL.replace(/\/$/, ''));
 }
 
 export const corsOptions = {

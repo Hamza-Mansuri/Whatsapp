@@ -167,8 +167,11 @@ body, html, #root {
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 16px;
   outline: none;
+  -webkit-appearance: none;
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 .search-input::placeholder {
@@ -523,10 +526,13 @@ body, html, #root {
   background-color: #ffffff;
   border-radius: 8px;
   padding: 8px 16px;
-  font-size: 0.95rem;
+  font-size: 16px;
   outline: none;
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
+  -webkit-appearance: none;
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 .message-input::placeholder {
@@ -690,10 +696,13 @@ body, html, #root {
   padding: 0 14px;
   border: 1.5px solid var(--border-color);
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 16px;
   outline: none;
   background-color: #fafafa;
   transition: border-color var(--transition-speed), background-color var(--transition-speed);
+  -webkit-appearance: none;
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 .form-input:focus {
