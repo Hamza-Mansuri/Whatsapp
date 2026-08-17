@@ -80,11 +80,13 @@ export default function ChatLayout() {
         const filtered = response.data.users.filter((u) => getUserId(u) !== currentUserId);
         setAvailableUsers(filtered);
       } else {
-        setUsersError('Failed to load users');
+        setUsersError(`Failed to load users: ${JSON.stringify(response.data || 'Empty Response')}`);
       }
     } catch (error) {
-      console.error('Fetch Available Users Error:', error.message);
-      setUsersError('Network error while loading users. Please try again.');
+      console.error('Fetch Available Users Error:', error);
+      const status = error.response ? error.response.status : 'No Status';
+      const errMsg = error.response?.data?.message || error.message;
+      setUsersError(`Network error (${status}): ${errMsg}`);
     } finally {
       setLoadingUsers(false);
     }
@@ -783,7 +785,13 @@ export default function ChatLayout() {
             onSearchChange={setSearchQuery}
             showNewChatList={showNewChatList}
             onToggleNewChatList={() => {
-              setShowNewChatList((prev) => !prev);
+              setShowNewChatList((prev) => {
+                const nextState = !prev;
+                if (nextState) {
+                  fetchAvailableUsers();
+                }
+                return nextState;
+              });
               setSearchQuery('');
             }}
             availableUsers={availableUsers}

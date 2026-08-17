@@ -352,7 +352,7 @@ body, html, #root {
 
 /* Chat Header */
 .chat-header {
-  height: 64px;
+  min-height: 64px;
   background-color: var(--bg-chat-header);
   border-bottom: 1px solid var(--border-color);
   padding: 10px 16px;
@@ -370,9 +370,15 @@ body, html, #root {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   border-radius: 50%;
   margin-right: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .back-btn:hover {
@@ -383,6 +389,8 @@ body, html, #root {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .contact-details {
@@ -589,7 +597,6 @@ body, html, #root {
 @media (max-width: 768px) {
   .chat-layout {
     width: 100vw;
-    height: 100vh;
   }
 
   .sidebar {
