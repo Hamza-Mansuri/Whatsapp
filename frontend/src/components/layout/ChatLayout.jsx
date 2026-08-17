@@ -73,8 +73,16 @@ export default function ChatLayout() {
     setLoadingUsers(true);
     setUsersError(null);
     try {
-      // Append a timestamp to completely bypass iOS Safari's aggressive caching
-      const response = await apiClient.get(`/users?_t=${new Date().getTime()}`);
+      // Use headers instead of a query parameter to bypass Safari caching
+      // Query parameters like _t=... can trigger iOS Safari's Intelligent Tracking Prevention (ITP)
+      // which strips cookies from the request, leading to 401 Unauthorized errors.
+      const response = await apiClient.get('/users', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       if (response.data && response.data.success) {
         const currentUserId = getUserId(user);
         const filtered = response.data.users.filter((u) => getUserId(u) !== currentUserId);
