@@ -12,6 +12,9 @@ export default function Sidebar({
   showNewChatList,
   onToggleNewChatList,
   availableUsers = [],
+  loadingUsers,
+  usersError,
+  onRetryUsers,
   onStartConversation,
   onlineUserIds,
   onOpenProfile,
@@ -112,28 +115,54 @@ export default function Sidebar({
           <div style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-teal)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.01)' }}>
             CONTACTS ON WHATSAPP LITE
           </div>
-          {filteredUsers.map((u) => {
-            const isOnline = onlineUserIds?.has(u._id);
-            return (
-              <div key={u._id} className="chat-list-item" onClick={() => onStartConversation(u._id)}>
-                <div className="avatar-wrapper">
-                  <img
-                    src={getProfessionalAvatar(u)}
-                    alt={u.name}
-                    className="avatar"
-                    style={{ objectFit: 'cover' }}
-                  />
-                  {isOnline && <span className="online-indicator-dot" />}
-                </div>
-                <div className="chat-item-details">
-                  <span className="chat-item-name">{u.name}</span>
-                  <span className="chat-item-last-msg" style={{ fontSize: '0.78rem' }}>Click to start chat</span>
-                </div>
-              </div>
-            );
-          })}
-          {filteredUsers.length === 0 && (
-            <div className="no-chats-found">No users found</div>
+          {loadingUsers ? (
+            <div className="no-chats-found" style={{ padding: '20px', textAlign: 'center' }}>
+              Loading users...
+            </div>
+          ) : usersError ? (
+            <div className="no-chats-found" style={{ padding: '20px', textAlign: 'center', color: '#ea0038' }}>
+              <p style={{ marginBottom: '12px' }}>{usersError}</p>
+              <button 
+                onClick={onRetryUsers}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--primary-teal)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              {filteredUsers.map((u) => {
+                const isOnline = onlineUserIds?.has(u._id);
+                return (
+                  <div key={u._id} className="chat-list-item" onClick={() => onStartConversation(u._id)}>
+                    <div className="avatar-wrapper">
+                      <img
+                        src={getProfessionalAvatar(u)}
+                        alt={u.name}
+                        className="avatar"
+                        style={{ objectFit: 'cover' }}
+                      />
+                      {isOnline && <span className="online-indicator-dot" />}
+                    </div>
+                    <div className="chat-item-details">
+                      <span className="chat-item-name">{u.name}</span>
+                      <span className="chat-item-last-msg" style={{ fontSize: '0.78rem' }}>Click to start chat</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredUsers.length === 0 && (
+                <div className="no-chats-found">No users found</div>
+              )}
+            </>
           )}
         </div>
       ) : (

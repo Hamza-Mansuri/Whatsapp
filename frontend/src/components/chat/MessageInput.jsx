@@ -211,7 +211,10 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
       await onSendMessage(text, selectedFile);
       setText('');
       handleCancelFile();
-      setTimeout(() => inputRef.current?.focus(), 10);
+      // Only focus if we aren't unmounting or losing the input
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -338,7 +341,11 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
           onKeyDown={handleKeyDown}
           className="message-input"
           maxLength={1000}
-          disabled={sending}
+          readOnly={sending}
+          enterKeyHint="send"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="sentences"
         />
 
             {/* Microphone / Send Button */}

@@ -21,6 +21,10 @@ export default function ChatLayout() {
   const [typingUsers, setTypingUsers] = useState({}); // conversationId -> Set of userIds who are typing
   const [toastMessage, setToastMessage] = useState('');
 
+  // Users List States
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersError, setUsersError] = useState(null);
+
   // Pagination States
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -65,6 +69,9 @@ export default function ChatLayout() {
 
   // 2. Fetch Available Users from API
   const fetchAvailableUsers = useCallback(async () => {
+    if (!user) return;
+    setLoadingUsers(true);
+    setUsersError(null);
     try {
       // Append a timestamp to completely bypass iOS Safari's aggressive caching
       const response = await apiClient.get(`/users?_t=${new Date().getTime()}`);
@@ -72,9 +79,14 @@ export default function ChatLayout() {
         const currentUserId = getUserId(user);
         const filtered = response.data.users.filter((u) => getUserId(u) !== currentUserId);
         setAvailableUsers(filtered);
+      } else {
+        setUsersError('Failed to load users');
       }
     } catch (error) {
       console.error('Fetch Available Users Error:', error.message);
+      setUsersError('Network error while loading users. Please try again.');
+    } finally {
+      setLoadingUsers(false);
     }
   }, [user]);
 
@@ -775,6 +787,9 @@ export default function ChatLayout() {
               setSearchQuery('');
             }}
             availableUsers={availableUsers}
+            loadingUsers={loadingUsers}
+            usersError={usersError}
+            onRetryUsers={fetchAvailableUsers}
             onStartConversation={handleStartConversation}
             onlineUserIds={onlineUserIds}
             onOpenProfile={() => {
