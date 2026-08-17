@@ -66,7 +66,8 @@ export default function ChatLayout() {
   // 2. Fetch Available Users from API
   const fetchAvailableUsers = useCallback(async () => {
     try {
-      const response = await apiClient.get('/users');
+      // Append a timestamp to completely bypass iOS Safari's aggressive caching
+      const response = await apiClient.get(`/users?_t=${new Date().getTime()}`);
       if (response.data && response.data.success) {
         const currentUserId = getUserId(user);
         const filtered = response.data.users.filter((u) => getUserId(u) !== currentUserId);
