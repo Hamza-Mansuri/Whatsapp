@@ -3,6 +3,7 @@ import { getIO } from '../socket/socket.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -162,3 +163,45 @@ export const removeProfilePicture = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to remove profile picture' });
   }
 };
+
+// @desc    Search for a user by phone number
+// @route   GET /api/users/search-phone?phone=...
+// @access  Private
+export const searchByPhone = async (req, res) => {
+  try {
+    const { phone } = req.query;
+
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number parameter is required' });
+    }
+
+    const parsedNumber = parsePhoneNumberFromString(phone, 'US'); // Fallback country doesn't matter much if + is provided
+    
+    // Attempt to match even if parsing fails strictly, but ideally we use the normalized number
+    let searchQuery = phone;
+    if (parsedNumber && parsedNumber.isValid()) {
+       searchQuery = parsedNumber.number;
+    } else {
+       // Just strip whitespace and see if it matches
+       searchQuery = phone.replace(/\s+/g, '');
+    }
+
+    const user = await User.findOne({
+      phoneNumberNormalized: searchQuery,
+      _id: { $ne: req.user._id } // Don't return self
+    }).select('name avatar about lastSeen phoneNumber phoneNumberNormalized countryCode');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No user found with this phone number' });
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error('Search Phone Error:', error.message);
+    res.status(500).json({ success: false, message: 'Server error during phone search' });
+  }
+};
+

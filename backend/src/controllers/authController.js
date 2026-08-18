@@ -1,7 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { User } from '../models/User.js';
+import { Otp } from '../models/Otp.js';
 import { config } from '../config/env.js';
+import { generateOtp, hashOtp, sendOtp } from '../services/otp.service.js';
 
 // Helper to generate token and set cookie
 const sendTokenResponse = (user, statusCode, res) => {
@@ -184,3 +187,147 @@ export const getMe = async (req, res) => {
     });
   }
 };
+
+// @desc    Request OTP for phone number
+// @route   POST /api/auth/phone/request-otp
+// @access  Public
+export const requestOtp = async (req, res) => {
+  const { phoneNumber, countryCode } = req.body;
+  
+  if (!phoneNumber) {
+    return res.status(400).json({ success: false, message: 'Phone number is required' });
+  }
+
+  try {
+    const parsedNumber = parsePhoneNumberFromString(phoneNumber, countryCode || 'US');
+    if (!parsedNumber || !parsedNumber.isValid()) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number' });
+    }
+    
+    const phoneNumberNormalized = parsedNumber.number; // E.164 format
+
+    // Check rate limits/attempts for this phone number
+    const existingOtp = await Otp.findOne({ phoneNumberNormalized });
+    
+    if (existingOtp) {
+      if (existingOtp.attempts >= parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10)) {
+        return res.status(429).json({ success: false, message: 'Too many attempts. Please try again later.' });
+      }
+      
+      // Wait for at least 30 seconds before sending another OTP to prevent spam
+      const timeSinceLastOtp = Date.now() - existingOtp.updatedAt.getTime();
+      if (timeSinceLastOtp < 30000) {
+        return res.status(429).json({ success: false, message: 'Please wait before requesting another OTP.' });
+      }
+    }
+
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    
+    const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '5', 10);
+    const expiresAt = new Date(Date.now() + expiryMinutes * 60000);
+
+    // Upsert OTP record
+    if (existingOtp) {
+      existingOtp.otpHash = otpHash;
+      existingOtp.expiresAt = expiresAt;
+      existingOtp.attempts += 1;
+      await existingOtp.save();
+    } else {
+      await Otp.create({
+        phoneNumberNormalized,
+        otpHash,
+        expiresAt,
+        attempts: 1
+      });
+    }
+
+    await sendOtp(phoneNumberNormalized, otp);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      phoneNumberNormalized
+    });
+  } catch (error) {
+    console.error('Request OTP Error:', error.message);
+    res.status(500).json({ success: false, message: 'Server error requesting OTP' });
+  }
+};
+
+// @desc    Verify OTP for phone number and login/register
+// @route   POST /api/auth/phone/verify-otp
+// @access  Public
+export const verifyOtp = async (req, res) => {
+  const { phoneNumberNormalized, otp, name, countryCode } = req.body;
+
+  if (!phoneNumberNormalized || !otp) {
+    return res.status(400).json({ success: false, message: 'Phone number and OTP are required' });
+  }
+
+  try {
+    const otpRecord = await Otp.findOne({ phoneNumberNormalized });
+    
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'OTP expired or invalid' });
+    }
+
+    const hashedInput = hashOtp(otp);
+    
+    if (otpRecord.otpHash !== hashedInput) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    // OTP is valid. Delete it so it can't be reused.
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    // Check if user exists
+    let user = await User.findOne({ phoneNumberNormalized });
+
+    if (!user) {
+      // Create new user
+      if (!name) {
+        // We require a name for new registration, so if they didn't provide one, tell them
+        return res.status(200).json({ 
+          success: true, 
+          isNewUser: true, 
+          message: 'Phone verified. Please provide a name to complete registration.' 
+        });
+      }
+
+      const headshots = [
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces',
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=faces',
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces'
+      ];
+      const charSum = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const avatarIndex = charSum % headshots.length;
+      const avatarUrl = headshots[avatarIndex];
+
+      user = await User.create({
+        name,
+        phoneNumberNormalized,
+        countryCode,
+        phoneNumber: phoneNumberNormalized,
+        phoneNumberVerified: true,
+        avatar: avatarUrl
+      });
+    } else {
+      // User exists, they are logging in. Ensure they are marked verified
+      if (!user.phoneNumberVerified) {
+         user.phoneNumberVerified = true;
+         await user.save();
+      }
+    }
+
+    sendTokenResponse(user, 200, res);
+
+  } catch (error) {
+    console.error('Verify OTP Error:', error.message);
+    res.status(500).json({ success: false, message: 'Server error verifying OTP' });
+  }
+};
+

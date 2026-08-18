@@ -331,6 +331,18 @@ export default function ProfilePanel({ onBack }) {
           This is not your username or pin. This name will be visible to your WhatsApp contacts.
         </div>
 
+        {/* Phone Number (Read-only) */}
+        {(profile.phoneNumberNormalized || profile.phoneNumber) && (
+          <div style={{ backgroundColor: 'white', padding: '14px 30px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+            <div style={{ color: '#008069', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 500 }}>
+              Phone number
+            </div>
+            <div style={{ fontSize: '1.05rem', color: '#111B21' }}>
+              {profile.phoneNumberNormalized || profile.phoneNumber}
+            </div>
+          </div>
+        )}
+
         {/* About Editor */}
         {renderEditableField('About', profile.about || 'Available', isEditingAbout, setIsEditingAbout, editAbout, setEditAbout, handleSaveAbout, 139)}
 

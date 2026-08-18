@@ -66,6 +66,30 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const requestOtp = async (phoneNumber, countryCode) => {
+    try {
+      const response = await apiClient.post('/auth/phone/request-otp', { phoneNumber, countryCode });
+      return { success: true, data: response.data };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to request OTP. Please try again.';
+      return { success: false, message };
+    }
+  };
+
+  const verifyOtp = async (phoneNumberNormalized, otp, name, countryCode) => {
+    try {
+      const response = await apiClient.post('/auth/phone/verify-otp', { phoneNumberNormalized, otp, name, countryCode });
+      if (response.data && response.data.success && !response.data.isNewUser) {
+        setUser(response.data.user);
+        return { success: true };
+      }
+      return { success: true, data: response.data };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Invalid OTP. Please try again.';
+      return { success: false, message };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -73,6 +97,8 @@ export function AuthProvider({ children }) {
     register,
     logout,
     refreshUser,
+    requestOtp,
+    verifyOtp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

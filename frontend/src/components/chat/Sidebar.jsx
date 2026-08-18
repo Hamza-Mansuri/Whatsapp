@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ChatList from './ChatList';
 import useAuth from '../../hooks/useAuth';
 import { getProfessionalAvatar } from '../../utils/avatar';
+import apiClient from '../../services/api';
 
 export default function Sidebar({
   conversations,
@@ -22,11 +23,36 @@ export default function Sidebar({
   onOpenStatus,
 }) {
   const { user, logout } = useAuth();
+  
+  const [phoneSearchQuery, setPhoneSearchQuery] = useState('');
+  const [phoneSearchResult, setPhoneSearchResult] = useState(null);
+  const [phoneSearchLoading, setPhoneSearchLoading] = useState(false);
+  const [phoneSearchError, setPhoneSearchError] = useState('');
 
   // Filter available users by search query
   const filteredUsers = availableUsers.filter((u) =>
     u.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handlePhoneSearch = async (e) => {
+    e.preventDefault();
+    if (!phoneSearchQuery.trim()) return;
+    
+    setPhoneSearchLoading(true);
+    setPhoneSearchError('');
+    setPhoneSearchResult(null);
+    
+    try {
+      const response = await apiClient.get(`/users/search-phone?phone=${encodeURIComponent(phoneSearchQuery)}`);
+      if (response.data && response.data.success) {
+        setPhoneSearchResult(response.data.user);
+      }
+    } catch (err) {
+      setPhoneSearchError(err.response?.data?.message || 'User not found');
+    } finally {
+      setPhoneSearchLoading(false);
+    }
+  };
 
   return (
     <aside className="sidebar">
@@ -113,7 +139,53 @@ export default function Sidebar({
               <span className="chat-item-name" style={{ fontSize: '1.05rem', color: '#111b21', fontWeight: 500 }}>New group</span>
             </div>
           </div>
-          <div style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-teal)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.01)' }}>
+          
+          {/* Phone Search Section */}
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#f9f9f9' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              🔍 Search phone number
+            </div>
+            <form onSubmit={handlePhoneSearch} style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="+91 98765 43210"
+                value={phoneSearchQuery}
+                onChange={(e) => setPhoneSearchQuery(e.target.value)}
+                style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', outline: 'none' }}
+              />
+              <button 
+                type="submit" 
+                disabled={phoneSearchLoading}
+                style={{ padding: '8px 12px', backgroundColor: 'var(--primary-teal)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Search
+              </button>
+            </form>
+            
+            {phoneSearchLoading && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '8px' }}>Searching...</div>}
+            {phoneSearchError && <div style={{ fontSize: '0.85rem', color: '#ea0038', marginTop: '8px' }}>{phoneSearchError}</div>}
+            
+            {phoneSearchResult && (
+              <div style={{ marginTop: '12px', padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <img src={getProfessionalAvatar(phoneSearchResult)} alt={phoneSearchResult.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{phoneSearchResult.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{phoneSearchResult.phoneNumberFormatted || phoneSearchResult.phoneNumber}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{phoneSearchResult.about}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onStartConversation(phoneSearchResult._id)}
+                  style={{ padding: '8px', backgroundColor: 'var(--primary-teal)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, textAlign: 'center' }}
+                >
+                  Message
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-teal)', borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.01)' }}>
             CONTACTS ON WHATSAPP LITE
           </div>
           {loadingUsers ? (

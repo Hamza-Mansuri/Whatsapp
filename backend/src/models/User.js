@@ -9,14 +9,30 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true, // Allow multiple users with no email
       trim: true,
       lowercase: true,
     },
     password: {
       type: String,
-      required: true,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    countryCode: {
+      type: String,
+      trim: true,
+    },
+    phoneNumberNormalized: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    phoneNumberVerified: {
+      type: Boolean,
+      default: false,
     },
     avatar: {
       type: String,
