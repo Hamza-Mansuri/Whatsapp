@@ -158,4 +158,21 @@ export const socketService = {
   offMessageUpdated: (callback) => {
     socket?.off('message_updated', callback);
   },
+
+  // Status Events
+  onStatusCreated: (callback) => {
+    socket?.on('status_created', callback);
+  },
+
+  offStatusCreated: (callback) => {
+    socket?.off('status_created', callback);
+  },
+
+  onStatusDeleted: (callback) => {
+    socket?.on('status_deleted', callback);
+  },
+
+  offStatusDeleted: (callback) => {
+    socket?.off('status_deleted', callback);
+  },
 };

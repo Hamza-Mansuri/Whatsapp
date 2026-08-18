@@ -8,6 +8,7 @@ import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
 import conversationRouter from './routes/conversation.routes.js';
 import messageRouter from './routes/message.routes.js';
+import statusRouter from './routes/status.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/conversations', conversationRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/status', statusRouter);
 
 // Base Health Check endpoint
 app.get('/health', (req, res) => {

@@ -3,6 +3,7 @@ import Sidebar from '../chat/Sidebar';
 import ChatWindow from '../chat/ChatWindow';
 import ProfilePanel from '../profile/ProfilePanel';
 import NewGroupPanel from '../chat/NewGroupPanel';
+import StatusSection from '../status/StatusSection';
 import apiClient from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import { socketService } from '../../services/socket';
@@ -35,9 +36,10 @@ export default function ChatLayout() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatList, setShowNewChatList] = useState(false);
-  const [mobileView, setMobileView] = useState('list'); // 'list', 'chat', or 'profile'
+  const [mobileView, setMobileView] = useState('list'); // 'list', 'chat', 'profile', or 'status'
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [showNewGroupPanel, setShowNewGroupPanel] = useState(false);
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
 
   // Ref to track the current activeChatId to prevent re-binding listeners
   const activeChatIdRef = useRef(activeChatId);
@@ -769,10 +771,15 @@ export default function ChatLayout() {
 
   return (
     <div className={`chat-layout ${mobileView === 'chat' ? 'mobile-show-chat' : 'mobile-show-list'}`}>
-      <div className={`sidebar-wrapper ${mobileView === 'list' || mobileView === 'profile' ? 'active' : ''}`}>
+      <div className={`sidebar-wrapper ${mobileView === 'list' || mobileView === 'profile' || mobileView === 'status' ? 'active' : ''}`}>
         {showProfilePanel ? (
           <ProfilePanel onBack={() => {
             setShowProfilePanel(false);
+            setMobileView('list');
+          }} />
+        ) : showStatusPanel ? (
+          <StatusSection onBack={() => {
+            setShowStatusPanel(false);
             setMobileView('list');
           }} />
         ) : showNewGroupPanel ? (
@@ -814,6 +821,10 @@ export default function ChatLayout() {
             }}
             onOpenNewGroup={() => {
               setShowNewGroupPanel(true);
+            }}
+            onOpenStatus={() => {
+              setShowStatusPanel(true);
+              setMobileView('status');
             }}
           />
         )}

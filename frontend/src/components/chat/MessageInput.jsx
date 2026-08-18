@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import CameraCapture from './CameraCapture';
 
 export default function MessageInput({ onSendMessage, onTyping, replyingToMessage, editingMessage }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -230,6 +232,24 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {showCamera && (
+        <CameraCapture 
+          onClose={() => setShowCamera(false)}
+          onSendMedia={async (file) => {
+             setSending(true);
+             try {
+                // If the file is video, send as video with some arbitrary duration logic or let backend handle it
+                // onSendMessage signature: onSendMessage(text, file, mediaDuration)
+                // we leave text empty, pass the file.
+                await onSendMessage('', file);
+             } catch(err) {
+                console.error(err);
+             } finally {
+                setSending(false);
+             }
+          }}
+        />
+      )}
       {previewUrl && (
         <div style={{
           padding: '10px 20px',
@@ -347,6 +367,22 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
           autoCorrect="off"
           autoCapitalize="sentences"
         />
+        
+        {/* Camera Button */}
+        <button
+          type="button"
+          className="input-action-btn"
+          disabled={sending || !!editingMessage}
+          title="Camera"
+          aria-label="Camera"
+          onClick={() => setShowCamera(true)}
+          style={{ padding: '8px' }}
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+          </svg>
+        </button>
 
             {/* Microphone / Send Button */}
             {(text.trim() || selectedFile) ? (

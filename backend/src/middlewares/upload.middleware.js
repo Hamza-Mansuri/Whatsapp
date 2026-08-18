@@ -16,23 +16,23 @@ if (!fs.existsSync(uploadDir)) {
 // Using memory storage for Cloudinary upload
 const storage = multer.memoryStorage();
 
-// File Filter for Images and Audio
+// File Filter for Images, Audio, and Video
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp|gif|webm|mp3|wav|ogg|m4a|aac/i;
+  const allowedTypes = /jpeg|jpg|png|webp|gif|webm|mp3|wav|ogg|m4a|aac|mp4|mov/i;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   }
-  cb(new Error('Only image (jpg, png, webp, gif) and audio (webm, mp3, wav, ogg, m4a, aac) files are allowed'));
+  cb(new Error('Only image, audio, and video files are allowed'));
 };
 
 // Export configured multer instance
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 15 * 1024 * 1024, // 15MB limit for status videos
   },
   fileFilter,
 });
