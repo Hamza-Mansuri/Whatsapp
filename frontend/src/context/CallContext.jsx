@@ -184,7 +184,7 @@ export const CallProvider = ({ children }) => {
 
       // 30s timeout
       timeoutRef.current = setTimeout(() => {
-        if (callState === 'outgoing_call') {
+        if (callStateRef.current === 'outgoing_call' || callStateRef.current === 'connecting') {
           socketService.emitCallCancel({ targetId: targetUser._id || targetUser.id, callType: cType });
           resetCall();
           alert('No answer');
