@@ -175,4 +175,42 @@ export const socketService = {
   offStatusDeleted: (callback) => {
     socket?.off('status_deleted', callback);
   },
+
+  // --- WebRTC Signaling ---
+  emitCallInitiate: (data) => socket?.emit('call:initiate', data),
+  emitCallAccept: (data) => socket?.emit('call:accept', data),
+  emitCallReject: (data) => socket?.emit('call:reject', data),
+  emitCallBusy: (data) => socket?.emit('call:busy', data),
+  emitCallCancel: (data) => socket?.emit('call:cancel', data),
+  emitCallEnd: (data) => socket?.emit('call:end', data),
+  emitCallOffer: (data) => socket?.emit('call:offer', data),
+  emitCallAnswer: (data) => socket?.emit('call:answer', data),
+  emitCallIceCandidate: (data) => socket?.emit('call:ice-candidate', data),
+
+  onCallRing: (cb) => socket?.on('call:ring', cb),
+  offCallRing: (cb) => socket?.off('call:ring', cb),
+
+  onCallAccept: (cb) => socket?.on('call:accept', cb),
+  offCallAccept: (cb) => socket?.off('call:accept', cb),
+
+  onCallReject: (cb) => socket?.on('call:reject', cb),
+  offCallReject: (cb) => socket?.off('call:reject', cb),
+
+  onCallBusy: (cb) => socket?.on('call:busy', cb),
+  offCallBusy: (cb) => socket?.off('call:busy', cb),
+
+  onCallCancel: (cb) => socket?.on('call:cancel', cb),
+  offCallCancel: (cb) => socket?.off('call:cancel', cb),
+
+  onCallEnd: (cb) => socket?.on('call:end', cb),
+  offCallEnd: (cb) => socket?.off('call:end', cb),
+
+  onCallOffer: (cb) => socket?.on('call:offer', cb),
+  offCallOffer: (cb) => socket?.off('call:offer', cb),
+
+  onCallAnswer: (cb) => socket?.on('call:answer', cb),
+  offCallAnswer: (cb) => socket?.off('call:answer', cb),
+
+  onCallIceCandidate: (cb) => socket?.on('call:ice-candidate', cb),
+  offCallIceCandidate: (cb) => socket?.off('call:ice-candidate', cb),
 };

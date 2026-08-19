@@ -4,6 +4,8 @@ import ChatWindow from '../chat/ChatWindow';
 import ProfilePanel from '../profile/ProfilePanel';
 import NewGroupPanel from '../chat/NewGroupPanel';
 import StatusSection from '../status/StatusSection';
+import IncomingCallModal from '../call/IncomingCallModal';
+import CallOverlay from '../call/CallOverlay';
 import apiClient from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import { socketService } from '../../services/socket';
@@ -770,7 +772,11 @@ export default function ChatLayout() {
   }, [conversations, searchQuery, user]);
 
   return (
-    <div className={`chat-layout ${mobileView === 'chat' ? 'mobile-show-chat' : 'mobile-show-list'}`}>
+    <div className="app-layout">
+      {/* Call Overlays */}
+      <IncomingCallModal />
+      <CallOverlay />
+
       <div className={`sidebar-wrapper ${mobileView === 'list' || mobileView === 'profile' || mobileView === 'status' ? 'active' : ''}`}>
         {showProfilePanel ? (
           <ProfilePanel onBack={() => {

@@ -16,6 +16,8 @@ export default function MessageBubble({
   isForwarded = false,
   type = 'text',
   mediaUrl = null,
+  callType = null,
+  callStatus = null,
   isGroup = false,
   onDeleteMessage,
   showToast,
@@ -285,6 +287,30 @@ export default function MessageBubble({
 
         {type === 'audio' && mediaUrl && !isDeleted && (
           <AudioPlayer mediaUrl={resolvedMediaUrl} isMe={isMe} msgId={msgId} />
+        )}
+
+        {type === 'call' && !isDeleted && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '6px', marginBottom: text ? '4px' : '0' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%', 
+              backgroundColor: callStatus === 'missed' ? '#f15c6d' : '#00a884',
+              display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white'
+            }}>
+              {callType === 'video' ? (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.55-.45-1-1-1H6c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.49c0-.55-.45-1-1-1z"/></svg>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: 500, color: callStatus === 'missed' ? '#f15c6d' : 'inherit' }}>
+                {callStatus === 'missed' ? 'Missed call' : 'Call ended'}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#8696a0' }}>
+                {callType === 'video' ? 'Video' : 'Audio'}
+              </span>
+            </div>
+          </div>
         )}
 
         {text || isDeleted ? (

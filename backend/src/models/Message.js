@@ -18,8 +18,16 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'audio', 'file', 'system'],
+      enum: ['text', 'image', 'audio', 'file', 'system', 'call'],
       default: 'text',
+    },
+    callType: {
+      type: String,
+      enum: ['audio', 'video'],
+    },
+    callStatus: {
+      type: String,
+      enum: ['missed', 'completed', 'rejected', 'ended'],
     },
     mediaUrl: {
       type: String,

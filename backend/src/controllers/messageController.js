@@ -74,74 +74,80 @@ export const getMessages = async (req, res) => {
 // @access  Private
 export const createMessage = async (req, res) => {
   const { conversationId } = req.params;
-  const { text, replyTo, isForwarded } = req.body;
+    const { text, replyTo, isForwarded, type, callType, callStatus } = req.body;
 
-  try {
-    if (!text || !text.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Message text cannot be empty',
-      });
-    }
-
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conversation not found',
-      });
-    }
-
-    // Verify user belongs to the conversation
-    const isParticipant = conversation.participants.some(
-      (pId) => pId.toString() === req.user.id
-    );
-    if (!isParticipant) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to send messages to this conversation',
-      });
-    }
-
-    // Resolve dynamic message status based on recipient online state and conversation room presence
-    const otherParticipantId = conversation.participants.find(
-      (pId) => pId.toString() !== req.user._id.toString()
-    );
-
-    let status = 'sent';
-    const io = getIO();
-
-    if (otherParticipantId) {
-      const otherSockets = getUserSockets(otherParticipantId.toString());
-      if (otherSockets.length > 0) {
-        const roomName = `conversation_${conversationId}`;
-        const roomSockets = io?.sockets?.adapter?.rooms?.get(roomName);
-        const isRecipientViewing = otherSockets.some((socketId) => roomSockets?.has(socketId));
-        status = isRecipientViewing ? 'read' : 'delivered';
+    try {
+      if ((!text || !text.trim()) && type !== 'call') {
+        return res.status(400).json({
+          success: false,
+          message: 'Message text cannot be empty',
+        });
       }
-    }
 
-    const messageData = {
-      conversation: conversationId,
-      sender: req.user.id,
-      text: text ? text.trim() : '',
-      status,
-    };
-
-    if (replyTo && mongoose.Types.ObjectId.isValid(replyTo)) {
-      messageData.replyTo = replyTo;
-    }
-
-    if (isForwarded === true || isForwarded === 'true') {
-      messageData.isForwarded = true;
-      if (req.body.type === 'image' && req.body.mediaUrl) {
-        messageData.type = 'image';
-        messageData.mediaUrl = req.body.mediaUrl;
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation) {
+        return res.status(404).json({
+          success: false,
+          message: 'Conversation not found',
+        });
       }
-    }
 
-    // Create the message
-    const message = await Message.create(messageData);
+      // Verify user belongs to the conversation
+      const isParticipant = conversation.participants.some(
+        (pId) => pId.toString() === req.user.id
+      );
+      if (!isParticipant) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to send messages to this conversation',
+        });
+      }
+
+      // Resolve dynamic message status based on recipient online state and conversation room presence
+      const otherParticipantId = conversation.participants.find(
+        (pId) => pId.toString() !== req.user._id.toString()
+      );
+
+      let status = 'sent';
+      const io = getIO();
+
+      if (otherParticipantId) {
+        const otherSockets = getUserSockets(otherParticipantId.toString());
+        if (otherSockets.length > 0) {
+          const roomName = `conversation_${conversationId}`;
+          const roomSockets = io?.sockets?.adapter?.rooms?.get(roomName);
+          const isRecipientViewing = otherSockets.some((socketId) => roomSockets?.has(socketId));
+          status = isRecipientViewing ? 'read' : 'delivered';
+        }
+      }
+
+      const messageData = {
+        conversation: conversationId,
+        sender: req.user.id,
+        text: text ? text.trim() : '',
+        status,
+      };
+
+      if (type === 'call') {
+        messageData.type = 'call';
+        messageData.callType = callType;
+        messageData.callStatus = callStatus;
+      }
+
+      if (replyTo && mongoose.Types.ObjectId.isValid(replyTo)) {
+        messageData.replyTo = replyTo;
+      }
+
+      if (isForwarded === true || isForwarded === 'true') {
+        messageData.isForwarded = true;
+        if (req.body.type === 'image' && req.body.mediaUrl) {
+          messageData.type = 'image';
+          messageData.mediaUrl = req.body.mediaUrl;
+        }
+      }
+
+      // Create the message
+      const message = await Message.create(messageData);
 
     // Populate details for the response
     await message.populate([

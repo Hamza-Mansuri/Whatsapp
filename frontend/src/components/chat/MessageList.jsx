@@ -243,6 +243,8 @@ export default function MessageList({
         isForwarded={msg.isForwarded}
         type={msg.type}
         mediaUrl={msg.mediaUrl}
+        callType={msg.callType}
+        callStatus={msg.callStatus}
         isGroup={isGroup}
         onDeleteMessage={onDeleteMessage}
         showToast={showToast}

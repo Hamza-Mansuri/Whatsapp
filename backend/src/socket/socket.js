@@ -85,6 +85,92 @@ export const initSocket = (server) => {
       });
     });
 
+    // --- WebRTC Signaling Events ---
+    socket.on('call:initiate', ({ targetId, callType, callerData }) => {
+      socket.to(`user_${targetId}`).emit('call:ring', {
+        callerId: userId,
+        callType,
+        callerData // { name, avatar }
+      });
+    });
+
+    const createCallMessage = async (targetId, callType, callStatus) => {
+      try {
+        const conv = await Conversation.findOne({
+          participants: { $all: [userId, targetId] },
+          isGroup: false
+        });
+        if (conv) {
+          const msg = await Message.create({
+            conversation: conv._id,
+            sender: userId,
+            type: 'call',
+            callType: callType || 'audio', // Default to audio if undefined
+            callStatus: callStatus
+          });
+          
+          await msg.populate([
+            { path: 'sender', select: 'name avatar' }
+          ]);
+          
+          conv.lastMessage = msg._id;
+          conv.lastMessageAt = Date.now();
+          await conv.save();
+
+          // Emit to both users
+          io.to(`conversation_${conv._id}`).emit('message_received', msg.toJSON());
+          
+          // Emit conversation preview updates
+          io.to(`user_${targetId}`).emit('conversation_updated', {
+            conversationId: conv._id,
+            lastMessage: msg.toJSON(),
+          });
+          io.to(`user_${userId}`).emit('conversation_updated', {
+            conversationId: conv._id,
+            lastMessage: msg.toJSON(),
+          });
+        }
+      } catch (err) {
+        console.error('Error creating call message:', err);
+      }
+    };
+
+    socket.on('call:accept', ({ targetId }) => {
+      socket.to(`user_${targetId}`).emit('call:accept', { responderId: userId });
+    });
+
+    socket.on('call:reject', ({ targetId, callType }) => {
+      socket.to(`user_${targetId}`).emit('call:reject', { responderId: userId });
+      createCallMessage(targetId, callType, 'rejected');
+    });
+
+    socket.on('call:busy', ({ targetId, callType }) => {
+      socket.to(`user_${targetId}`).emit('call:busy', { responderId: userId });
+      createCallMessage(targetId, callType, 'missed');
+    });
+
+    socket.on('call:cancel', ({ targetId, callType }) => {
+      socket.to(`user_${targetId}`).emit('call:cancel', { callerId: userId });
+      createCallMessage(targetId, callType, 'missed');
+    });
+
+    socket.on('call:end', ({ targetId, callType }) => {
+      socket.to(`user_${targetId}`).emit('call:end', { enderId: userId });
+      createCallMessage(targetId, callType, 'ended');
+    });
+
+    socket.on('call:offer', ({ targetId, offer }) => {
+      socket.to(`user_${targetId}`).emit('call:offer', { callerId: userId, offer });
+    });
+
+    socket.on('call:answer', ({ targetId, answer }) => {
+      socket.to(`user_${targetId}`).emit('call:answer', { responderId: userId, answer });
+    });
+
+    socket.on('call:ice-candidate', ({ targetId, candidate }) => {
+      socket.to(`user_${targetId}`).emit('call:ice-candidate', { senderId: userId, candidate });
+    });
+
     socket.on('disconnect', async () => {
       console.log(`Socket Disconnected: ${socket.user.name}`);
       

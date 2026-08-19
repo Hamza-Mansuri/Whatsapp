@@ -5,6 +5,7 @@ import MessageInput from './MessageInput';
 import ForwardModal from './ForwardModal';
 import GroupInfoPanel from './GroupInfoPanel';
 import useAuth from '../../hooks/useAuth';
+import { useCall } from '../../context/CallContext';
 import { getProfessionalAvatar } from '../../utils/avatar';
 import { getOtherParticipant, isSameUser } from '../../utils/conversation';
 import { formatLastSeen } from '../../utils/time';
@@ -32,6 +33,7 @@ export default function ChatWindow({
   conversations = [],
 }) {
   const { user } = useAuth();
+  const { initiateCall } = useCall();
 
   const [showMessageSearch, setShowMessageSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -237,6 +239,8 @@ export default function ChatWindow({
           onHeaderClick={() => activeChat?.isGroup ? setShowGroupInfo(true) : null}
           isGroup={activeChat?.isGroup}
           chat={activeChat}
+          onVideoCallClick={() => !activeChat?.isGroup && initiateCall(otherParticipant, 'video')}
+          onAudioCallClick={() => !activeChat?.isGroup && initiateCall(otherParticipant, 'audio')}
         />
       )}
 
