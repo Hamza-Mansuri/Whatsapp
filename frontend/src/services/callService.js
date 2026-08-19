@@ -6,6 +6,7 @@ class CallService {
     this.onRemoteTrack = null;
     this.onIceCandidate = null;
     this.onConnectionStateChange = null;
+    this.iceCandidateQueue = [];
   }
 
   getIceServers() {
@@ -31,6 +32,7 @@ class CallService {
     if (this.peerConnection) {
       this.closePeerConnection();
     }
+    this.iceCandidateQueue = [];
 
     const config = {
       iceServers: this.getIceServers()
@@ -48,9 +50,7 @@ class CallService {
     // Handle remote tracks
     this.peerConnection.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
-        event.streams[0].getTracks().forEach((track) => {
-          this.remoteStream.addTrack(track);
-        });
+        this.remoteStream = event.streams[0];
       } else {
         this.remoteStream.addTrack(event.track);
       }
@@ -66,11 +66,11 @@ class CallService {
     };
   }
 
-  async startLocalMedia(callType) {
+  async startLocalMedia(callType = 'audio') {
     try {
       const constraints = {
         audio: true,
-        video: callType === 'video' ? { facingMode: 'user' } : false
+        video: callType === 'video'
       };
       
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -116,6 +116,11 @@ class CallService {
     if (!this.peerConnection) return;
     try {
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(description));
+      // Process queued candidates
+      while (this.iceCandidateQueue.length > 0) {
+        const candidate = this.iceCandidateQueue.shift();
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      }
     } catch (err) {
       console.error('Error setting remote description:', err);
       throw err;
@@ -123,7 +128,11 @@ class CallService {
   }
 
   async addIceCandidate(candidate) {
-    if (!this.peerConnection) return;
+    // If we don't have a peer connection or remote description yet, queue it!
+    if (!this.peerConnection || !this.peerConnection.remoteDescription) {
+      this.iceCandidateQueue.push(candidate);
+      return;
+    }
     try {
       await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
