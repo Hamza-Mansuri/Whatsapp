@@ -772,10 +772,12 @@ export default function ChatLayout() {
   }, [conversations, searchQuery, user]);
 
   return (
-    <div className="app-layout">
+    <>
       {/* Call Overlays */}
       <IncomingCallModal />
       <CallOverlay />
+
+      <div className={`chat-layout ${mobileView === 'chat' ? 'mobile-show-chat' : 'mobile-show-list'}`}>
 
       <div className={`sidebar-wrapper ${mobileView === 'list' || mobileView === 'profile' || mobileView === 'status' ? 'active' : ''}`}>
         {showProfilePanel ? (
@@ -876,5 +878,6 @@ export default function ChatLayout() {
         </div>
       )}
     </div>
+    </>
   );
 }
