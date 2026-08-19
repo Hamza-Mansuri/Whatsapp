@@ -417,6 +417,7 @@ body, html, #root {
 .header-actions {
   display: flex;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 /* Scrollable Messages Container */
