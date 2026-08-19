@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import CameraCapture from './CameraCapture';
+import AttachmentMenu from './AttachmentMenu';
+import EmojiPicker from 'emoji-picker-react';
 
-export default function MessageInput({ onSendMessage, onTyping, replyingToMessage, editingMessage }) {
+export default function MessageInput({ onSendMessage, onTyping, replyingToMessage, editingMessage, showToast }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -21,6 +25,8 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
 
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const documentInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isCurrentlyTypingRef = useRef(false);
 
@@ -31,6 +37,23 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
       stopRecordingCleanup();
     };
   }, [previewUrl]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+
+    const handleClickOutside = (e) => {
+      if (e.target.closest('.emoji-trigger-btn')) return;
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   // Focus input when replying to a message or editing
   useEffect(() => {
@@ -78,27 +101,58 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
     }, 1500);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e, isDocument = false) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate size (5MB max) and type
+    // Validate size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       alert('File size exceeds 5MB limit');
       e.target.value = '';
       return;
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('Only JPG, PNG, WEBP, and GIF images are allowed');
-      e.target.value = '';
-      return;
+    if (!isDocument) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Only images and videos are allowed for Photos & Videos');
+        e.target.value = '';
+        return;
+      }
     }
 
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    if (!isDocument && file.type.startsWith('image/')) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
     e.target.value = '';
+  };
+
+  const handleAttachmentSelect = (id) => {
+    switch (id) {
+      case 'document':
+        documentInputRef.current?.click();
+        break;
+      case 'photos':
+        fileInputRef.current?.click();
+        break;
+      case 'camera':
+        setShowCamera(true);
+        break;
+      case 'audio':
+        startRecording();
+        break;
+      case 'contact':
+      case 'poll':
+      case 'event':
+      case 'sticker':
+        showToast?.('This feature is coming soon!');
+        break;
+      default:
+        break;
+    }
   };
 
   const handleCancelFile = () => {
@@ -250,7 +304,7 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
           }}
         />
       )}
-      {previewUrl && (
+      {(previewUrl || selectedFile) && (
         <div style={{
           padding: '10px 20px',
           backgroundColor: '#f0f2f5',
@@ -259,8 +313,14 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
           alignItems: 'center',
           gap: '10px'
         }}>
-          <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden' }}>
-            <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#e9edef', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {previewUrl ? (
+              <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="#54656f">
+                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+              </svg>
+            )}
             <button 
               type="button"
               onClick={handleCancelFile}
@@ -323,33 +383,81 @@ export default function MessageInput({ onSendMessage, onTyping, replyingToMessag
           </div>
         ) : (
           <>
-            {/* Emoji Panel Trigger */}
-        <button type="button" className="input-action-btn" title="Emojis" disabled={sending}>
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-4-6c.71 1.73 2.39 3 4.4 3 2.01 0 3.69-1.27 4.4-3H8zm1.5-4c.83 0 1.5-.67 1.5-1.5S10.33 7 9.5 7 8 7.67 8 8.5 8.67 10 9.5 10zm5 0c.83 0 1.5-.67 1.5-1.5S15.33 7 14.5 7 13 7.67 13 8.5s.67 1.5 1.5 1.5z"/>
-          </svg>
-        </button>
+        {/* Emoji Panel Trigger */}
+        <div style={{ position: 'relative' }}>
+          <button 
+            type="button" 
+            className={`input-action-btn emoji-trigger-btn ${showEmojiPicker ? 'active' : ''}`}
+            title="Emojis" 
+            disabled={sending}
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-4-6c.71 1.73 2.39 3 4.4 3 2.01 0 3.69-1.27 4.4-3H8zm1.5-4c.83 0 1.5-.67 1.5-1.5S10.33 7 9.5 7 8 7.67 8 8.5 8.67 10 9.5 10zm5 0c.83 0 1.5-.67 1.5-1.5S15.33 7 14.5 7 13 7.67 13 8.5s.67 1.5 1.5 1.5z"/>
+            </svg>
+          </button>
+          
+          {showEmojiPicker && (
+            <div 
+              ref={emojiPickerRef}
+              style={{ 
+                position: 'absolute', 
+                bottom: '100%', 
+                left: '0', 
+                marginBottom: '10px',
+                zIndex: 1000 
+              }}
+            >
+              <EmojiPicker 
+                onEmojiClick={(emojiData) => {
+                  setText(prev => prev + emojiData.emoji);
+                  inputRef.current?.focus();
+                }}
+                theme="dark"
+                searchDisabled={false}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* Attachment Trigger (Disabled while editing) */}
+        {/* Hidden Document Input */}
+        <input 
+          type="file" 
+          ref={documentInputRef} 
+          style={{ display: 'none' }} 
+          accept="*" 
+          onChange={(e) => handleFileChange(e, true)}
+          disabled={!!editingMessage}
+        />
+        {/* Hidden Photos & Videos Input */}
         <input 
           type="file" 
           ref={fileInputRef} 
           style={{ display: 'none' }} 
-          accept="image/jpeg, image/png, image/webp, image/gif" 
-          onChange={handleFileChange}
+          accept="image/jpeg, image/png, image/webp, image/gif, video/mp4, video/webm" 
+          onChange={(e) => handleFileChange(e, false)}
           disabled={!!editingMessage}
         />
-        <button 
-          type="button" 
-          className="input-action-btn" 
-          title="Attach image" 
-          disabled={sending || !!editingMessage}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.66 1.34 3 3 3s3-1.34 3-3V5c0-2.21-1.79-4-4-4S8 2.79 8 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
-          </svg>
-        </button>
+        
+        {/* Attachment Menu Trigger */}
+        <div style={{ position: 'relative' }}>
+          <button 
+            type="button" 
+            className={`input-action-btn ${showAttachmentMenu ? 'active' : ''}`}
+            title="Attach" 
+            disabled={sending || !!editingMessage}
+            onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ transform: showAttachmentMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+          <AttachmentMenu 
+            isOpen={showAttachmentMenu} 
+            onClose={() => setShowAttachmentMenu(false)} 
+            onSelect={handleAttachmentSelect} 
+          />
+        </div>
 
         {/* Main Text Input */}
         <input

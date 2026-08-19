@@ -474,6 +474,7 @@ export default function ChatWindow({
         onTyping={onTyping} 
         replyingToMessage={replyingToMessage}
         editingMessage={editingMessage}
+        showToast={showToast}
       />
 
       <ForwardModal

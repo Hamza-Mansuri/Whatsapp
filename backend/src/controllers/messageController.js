@@ -237,10 +237,23 @@ export const createMediaMessage = async (req, res) => {
     }
 
     // Determine type based on mimetype
-    const type = req.file.mimetype.startsWith('audio/') ? 'audio' : 'image';
-    
-    const resourceType = type === 'audio' ? 'video' : 'image';
-    const folder = type === 'audio' ? 'whatsapp/messages/voice' : 'whatsapp/messages/images';
+    let type = 'file';
+    let resourceType = 'raw';
+    let folder = 'whatsapp/messages/docs';
+
+    if (req.file.mimetype.startsWith('audio/')) {
+      type = 'audio';
+      resourceType = 'video'; // Cloudinary handles audio as video
+      folder = 'whatsapp/messages/voice';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      type = 'image'; // Frontend currently treats video messages as type='image' and renders conditionally
+      resourceType = 'video';
+      folder = 'whatsapp/messages/videos';
+    } else if (req.file.mimetype.startsWith('image/')) {
+      type = 'image';
+      resourceType = 'image';
+      folder = 'whatsapp/messages/images';
+    }
     
     const result = await uploadToCloudinary(req.file.buffer, folder, resourceType);
     const mediaUrl = result.secure_url;
