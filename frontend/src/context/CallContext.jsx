@@ -47,22 +47,23 @@ export const CallProvider = ({ children }) => {
     resetCall();
   }, [remoteUser, callState, callType, resetCall]);
 
+  const callStateRef = useRef(callState);
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
+
   useEffect(() => {
     if (!user) return;
 
     const handleRing = (data) => {
       const { callerId, callType: cType, callerData } = data;
-      setCallState(prev => {
-        if (prev !== 'idle') {
-          // Send busy signal if we are already in a call
-          socketService.emitCallBusy({ targetId: callerId });
-          return prev;
-        }
-        
-        setCallType(cType);
-        setRemoteUser({ id: callerId, ...callerData });
-        return 'incoming_call';
-      });
+      if (callStateRef.current !== 'idle') {
+        socketService.emitCallBusy({ targetId: callerId, callType: cType });
+        return;
+      }
+      setCallType(cType);
+      setRemoteUser({ id: callerId, ...callerData });
+      setCallState('incoming_call');
     };
 
     const handleAccept = async () => {
@@ -123,6 +124,8 @@ export const CallProvider = ({ children }) => {
       }
     };
 
+    socketService.connect();
+    
     socketService.onCallRing(handleRing);
     socketService.onCallAccept(handleAccept);
     socketService.onCallReject(handleReject);
